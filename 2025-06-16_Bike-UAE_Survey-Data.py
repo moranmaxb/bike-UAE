@@ -13,3 +13,4 @@ df = pd.read_csv('LABELS-UAE Bicycle & Scooter Survey - CITIES_June 16, 2025_16.
 # Preview the first 5 rows
 print(df.head())
 print(df["StartDate"])
+print(df["EndDate"])
