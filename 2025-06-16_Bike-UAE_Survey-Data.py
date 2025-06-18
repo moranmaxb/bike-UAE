@@ -3,6 +3,7 @@
 
 # Import libraries
 import os
+
 import seaborn as sns
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -13,18 +14,20 @@ os.chdir(path)
 
 # Import data
 df = pd.read_csv('LABELS-UAE Bicycle & Scooter Survey - CITIES_June 16, 2025_16.12.csv')
-print(df.head())
+print(df.head(),"\n")
 
 # Drop unnecessary rows
 df = df.drop([0,1])
 print("Dataframe after dropping unecessary context rows:")
-print(df.head())
+print(df.head(),"\n")
 
 # List of new column names
 new_column_names = [# Automatically generated survey data
                     'StartDate', 'EndDate', 'Status', 'Progress',
                     'Duration', 'Finished', 'RecordedDate', 'ResponseID',
-                    'DistributionChannel', 'UserLang', 'Introduction', 'Emirate',
+                    'DistributionChannel',
+                    # Starting attributes
+                    'UserLang', 'Introduction', 'Emirate',
                     # Transporation by type
                     'TranspoType',
                     'Bike-Why', 'Bike-Why-Other', 'Bike-HowOften', 'Bike-Months',
@@ -43,7 +46,7 @@ new_column_names = [# Automatically generated survey data
                     # Safety by Location
                     'AbuDhabi-Safety', 'AbuDhabi-Location', 'AbuDhabi-Location-Other',
                     'AlAin-Safety', 'AlAin-Location', 'AlAin-Location-Other',
-                    'AlDhafra-', 'AlDhafra-Location',
+                    'AlDhafra-Safety', 'AlDhafra-Location',
                     'Dubai-Safety', 'Dubai-Location', 'Dubai-Location-Other',
                     'Sharjah-Safety', 'Sharjah-Location', 'Sharjah-Location-Other',
                     'Ajman-Safety', 'Ajman-Location',
@@ -76,24 +79,73 @@ new_column_names = [# Automatically generated survey data
 # Assign the list to the DataFrame
 df.columns = new_column_names
 print("Dataframe with better column names:")
-print(df.head())
+print(df,"\n")
 
-# Convert duration to int then minutes
+# Convert quant variables to int or float
 df['Duration'] = df['Duration'].astype(int)
+df['Progress'] = df['Progress'].astype(int)
+df['DurationInUAE'] = df['DurationInUAE'].replace({
+    'Less than 1': 0.5,
+    '40+': 40
+}).astype(float)
+
+
+
+### Handle spam responses
+# 38 questions (minQuestions) for 100% completion, assume ~5 seconds a question (minSecQ)
+# So, any entries with a completion % that was submitted to fast will be dropped (likely spammed through questions)
+preSpamFilterLen = len(df)
+minQuestions = 38 # this is the minimum number of questions to complete 100% of the survey
+minSecQ = 5 # set this variable to how many seconds it takes on average per question
+minTotTime = minQuestions * minSecQ
+
+df = df[~(df['Duration'] < (minTotTime*df['Progress'])/100)]
+print("Dataframe without spam responses:")
+print(df,"\n")
+print("Removed",preSpamFilterLen-len(df),"spam responses.\n")
+
+# Convert duration to minutes
 df['Duration'] = df['Duration'] / 60
 
-# Convert progress to int
-df['Progress'] = df['Progress'].astype(int)
+
+
+### Clean Data
+empty_cols = df.columns[df.isna().all()]
+print("Empty columns:\n")
+print(empty_cols,"\n")
+df = df.dropna(axis=1, how='all') # drops empty columns
+df = df.drop(columns=['StartDate', 'EndDate', 'ResponseID', 'Status', 'RecordedDate', 'DistributionChannel', 'Introduction', 'Giveaway']) # drops useless columns
+print("Dataframe without empty or unhelpful columns:")
+print(df,"\n")
 
 
 
-### Handle spam
-# 38 questions for 100% completion, assume ~3 seconds a question; that's 114 seconds (~2 minutes)
-# So, any entries with 100% completion in under 2 minutes we'll be removed (likely spam through questions)
-df = df[~((df['Duration'] < 2) & (df['Progress'] == 100))]
-print("Dataframe without 100% entries under 2 minutes:")
-print(df)
 
+'''
+### Basic Visualization
+# Gender Distribution Plot
+plt.figure(figsize=(6, 6))
+gender_counts = df['Gender'].value_counts()
+plt.pie(gender_counts, labels=gender_counts.index, autopct='%1.1f%%', startangle=90)
+plt.title('Gender Distribution')
+plt.axis('equal')
+plt.show()
+
+# Salary Distribution Plot
+plt.figure(figsize=(5, 12))
+salary_counts = df['Salary'].value_counts().sort_index()
+salary_counts.plot(kind='bar')
+plt.title('Salary Distribution')
+plt.xticks(rotation=45)
+plt.show()
+
+# Age Distribution Plot
+plt.figure(figsize=(5, 11))
+age_counts = df['Age'].value_counts().sort_index()
+age_counts.plot(kind='bar')
+plt.title('Age Distribution')
+plt.xticks(rotation=45)
+plt.show()
 
 
 ### Duration Distribution
@@ -114,17 +166,34 @@ upper_bound = Q3 + 1.5 * IQR
 
 # Filter the DataFrame
 dfDurationIQR = df[(df['Duration'] >= lower_bound) & (df['Duration'] <= upper_bound)]
-print("Removed",len(df['Duration'])-len(dfDurationIQR['Duration']),"outliers")
+print("Temporarily removed",len(df['Duration'])-len(dfDurationIQR['Duration']),"outliers")
 
+# Examine updated boxplot
 sns.boxplot(x=dfDurationIQR['Duration'])
 plt.title('Narrowed Survey Duration Box Plot')
 plt.xlabel('Duration (minutes)')
 plt.show()
 
+
 dfDurationIQR["Duration"].hist(bins=100)
-#plt.ylim(0, 20)
-#plt.xlim(0, 60)
 plt.xlabel('Duration (minutes)')
 plt.ylabel('Number of Respondents')
 plt.title('Survey Completion Time Distribution')
 plt.show()
+'''
+
+#df.to_excel('Bike-UAE_Basic-Cleaned.xlsx', index=False)
+
+from scipy.stats import chi2_contingency
+
+# Step 1: Create a contingency table
+table = pd.crosstab(df['Gender'], df['OwnBike'])
+print(table)
+
+# Step 2: Run the Chi-Square test
+chi2, p, dof, expected = chi2_contingency(table)
+
+# Step 3: View results
+print("Chi-Square Statistic:", chi2)
+print("Degrees of Freedom:", dof)
+print("p-value:", p)
