@@ -5,7 +5,7 @@ This is where you'll find all the technical analysis done for the biking infrust
 
 ##########################################################################
 
-In '2025-06-16_Bike-UAE_Survey-Data.py' you can find the data cleaning process I took for organizing the survey data (LABELS-UAE Bicycle & Scooter Survey - CITIES_June 16, 2025_16.12.csv). The cleaned excel file is 'Bike-UAE_Basic-Cleaned.xlsc'.
+In '2025-06-16_Bike-UAE_Survey-Data-Cleaning.py' you can find the data cleaning process I took for organizing the survey data (LABELS-UAE Bicycle & Scooter Survey - CITIES_June 16, 2025_16.12.csv). The cleaned excel file is 'Bike-UAE_Basic-Cleaned.xlsc'.
 
 #######
 Cleaned Bike-UAE Data Feature Descriptions // 2025-06-26 // Max Moran
@@ -218,5 +218,9 @@ UmmAlQuwain-Location - String - User text entry for where the user rides in Umm 
 
 Emirate-Location-Other - Boolean - If the user typically rides in another non-listed location
 Emirate-Location-Other-Text - String - User text entry for where the user rides other than the listed locations
+
+##########################################################################
+
+In the '2025-06-16_Bike-UAE_Survey-Data-Analysis.py' you can find some data visulization and anaylsis.
 
 ##########################################################################
