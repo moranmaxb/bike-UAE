@@ -24,7 +24,7 @@ print(df.head(),"\n")
 
 # Drop unnecessary rows
 df = df.drop([0,1])
-print("Dataframe after dropping unecessary context rows:")
+print("Dataframe after dropping unnecessary context rows:")
 print(df.head(),"\n")
 
 # List of new column names
@@ -95,8 +95,6 @@ df['DurationInUAE'] = df['DurationInUAE'].replace({
     '40+': 40
 }).astype(float)
 
-
-
 ### Handle spam responses
 # 38 questions (minQuestions) for 100% completion, assume ~5 seconds a question (minSecQ)
 # So, any entries with a completion % that was submitted to fast will be dropped (likely spammed through questions)
@@ -113,8 +111,6 @@ print("Removed",preSpamFilterLen-len(df),"spam responses.\n")
 # Convert duration to minutes
 df['Duration'] = df['Duration'] / 60
 
-
-
 ### Clean Data
 empty_cols = df.columns[df.isna().all()]
 print("Empty columns:\n")
@@ -124,7 +120,7 @@ df = df.drop(columns=['StartDate', 'EndDate', 'ResponseID', 'Status', 'RecordedD
 print("Dataframe without empty or unhelpful columns:")
 print(df,"\n")
 
-################# Tranform Multiselect Columns #################
+################# Transform Multi Select Columns #################
 # function to handle each needed column
 def expand_multiselect_column(df, column, delimiter=',', drop_original=False):
     """
