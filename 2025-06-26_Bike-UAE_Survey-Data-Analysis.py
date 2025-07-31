@@ -90,6 +90,8 @@ print()
 print("Degrees of Freedom:", dof)
 print()
 print("Chi-Square Statistic:", chi2)
-print("p-value:", p)
+print("p-vlue:", p)
+
+### July 2025 Analysis
 
 
