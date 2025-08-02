@@ -27,9 +27,9 @@ os.chdir(path)
 df = pd.read_excel('Bike-UAE_Basic-Cleaned.xlsx')
 #print(df.head(),"\n")
 
-####################################################################
-
-### Basic Data Visualization ###
+############################################################################################
+#                                         VISUALIZATION       
+############################################################################################
 
 ### Gender Distribution ###
 plt.figure(figsize=(6, 6))
@@ -216,7 +216,359 @@ plt.tight_layout()
 plt.show()
 print()
 
+####################################################################
 
+### Wordcloud ###
+
+from wordcloud import WordCloud, STOPWORDS
+
+def plot_wordclouds(df, columns, extra_stopwords=None, colormap='viridis'):
+    """
+    Generate and display word clouds for each column in a list of text columns.
+
+    Parameters:
+    - df (pd.DataFrame): The input DataFrame
+    - columns (list of str): List of column names (strings) to generate word clouds for
+    - extra_stopwords (set of str): Optional set of additional stopwords
+    - colormap (str): Optional matplotlib colormap for the word cloud
+    """
+    base_stopwords = set(STOPWORDS)
+    domain_stopwords = {'bike', 'biking', 'cycling', 'riding'}
+    all_stopwords = base_stopwords.union(domain_stopwords)
+    if extra_stopwords:
+        all_stopwords.update(extra_stopwords)
+
+    for col in columns:
+        if col not in df.columns:
+            print(f"⚠️ Column '{col}' not found in DataFrame. Skipping.")
+            continue
+        
+        # Combine all text entries in column
+        text = df[col].dropna().astype(str).str.cat(sep=' ').lower()
+        if not text.strip():
+            print(f"⚠️ Column '{col}' contains no valid text. Skipping.")
+            continue
+        
+        # Generate word cloud
+        wordcloud = WordCloud(width=1000, height=600, background_color='white',
+                              stopwords=all_stopwords, colormap=colormap).generate(text)
+
+        # Plot
+        plt.figure(figsize=(12, 7))
+        plt.imshow(wordcloud, interpolation='bilinear')
+        plt.axis('off')
+        plt.title(f"Word Cloud for '{col}'", fontsize=16)
+        plt.tight_layout()
+        plt.show()
+
+columns_to_plot = ['Emirate-WhyLikeRiding', 'Emirate-Initiatives','BikeType-Other-Text',
+                   'RiderType-Other-Text', 'TranspoType-Why-Other-Text', 'Education-Other-Text',
+                   'KidsCycle-No-Text', 'NoRideCommute-Other-Text', 'LifestyleInfluence-Other-Text',
+                   'Challenges-Other-Text', 'ExperienceImprovement-Other-Text', 'CycleShopsInfluence-Other-Text',
+                   'CycleShopsBenefit-Other-Text', 'AlDhafra-Location', 'UmmAlQuwain-Location', 'Emirate-Location-Other-Text']
+plot_wordclouds(df, columns_to_plot)
+
+######################################################################
+
+### Frequency Plots ###
+
+def plot_true_frequencies(df, columns, as_percentage=True, title="Frequency of Reasons for Riding", color='steelblue'):
+    """
+    Plots the frequency or percentage of True values for given Boolean columns.
+
+    Parameters:
+    - df (pd.DataFrame): The input DataFrame
+    - columns (list of str): Boolean column names to include
+    - as_percentage (bool): If True, plot percentages instead of raw counts
+    - title (str): Title for the plot
+    - color (str): Bar color
+    """
+    # Validate columns and count True values
+    valid_cols = [col for col in columns if col in df.columns]
+    true_counts = df[valid_cols].apply(lambda col: col.fillna(False).sum())
+    total_counts = df[valid_cols].notna().sum()
+
+    if as_percentage:
+        frequencies = (true_counts / total_counts * 100).round(2)
+        ylabel = "Percentage of Users (%)"
+    else:
+        frequencies = true_counts
+        ylabel = "Number of Users"
+
+    # Plot
+    plt.figure(figsize=(10, 6))
+    frequencies.sort_values(ascending=False).plot(kind='bar', color=color)
+    plt.ylabel(ylabel)
+    plt.title(title)
+    plt.xticks(rotation=45, ha='right')
+    plt.grid(axis='y', linestyle='--', alpha=0.5)
+    plt.tight_layout()
+    plt.show()
+
+
+## Why Ride Frequencies
+reason_columns = [
+    'Why-TourdeFrance',
+    'Why-Commuting',
+    'Why-Racing',
+    'Why-Fitness',
+    'Why-Leisure',
+    'TranspoType-Why-Other'
+]
+
+plot_true_frequencies(df, reason_columns, as_percentage=True, title="Why Ride")
+
+## Bike Type Frequencies
+reason_columns = [
+    'Type-BMXBike',
+    'Type-CyclocrossBike',
+    'Type-ElectricBike',
+    'Type-FoldingBike',
+    'Type-HybridBike',
+    'Type-MountainBike',
+    'Type-RoadBike',
+    'Not sure',
+    'BikeType-Other'
+]
+
+plot_true_frequencies(df, reason_columns, as_percentage=True, title="Bike Types")
+
+## No Ride Reason Frequencies
+reason_columns = [
+    'NoRideReason-Cultural',
+    'NoRideReason-Distance',
+    'NoRideReason-Judgment',
+    'NoRideReason-NoPaths',
+    'NoRideReason-NoFacilities',
+    'NoRideReason-TooLong',
+    'NoRideCommute-Other'
+]
+
+plot_true_frequencies(df, reason_columns, as_percentage=True, title="Reasons not to Ride")
+
+
+
+## AltMicro Frequencies
+reason_columns = [
+    'AltMicro-Bike',
+    'AltMicro-EBike',
+    'AltMicro-EScooter',
+    'AltMicro-ESkateboard',
+    'AltMicro-Camel',
+    'AltMicro-No'
+]
+
+plot_true_frequencies(df, reason_columns, as_percentage=True, title="Alternate Mirco-mobility")
+
+## Month Frequencies
+reason_columns = [
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December'
+]
+
+plot_true_frequencies(df, reason_columns, as_percentage=True, title="Riding Months")
+
+## Life Style Influence Frequencies
+reason_columns = [
+    'LSI-ParticpationInEvents',
+    'LSI-ReduceCarbonFootprint',
+    'LSI-ImprovedPhysicalFitness',
+    'LSI-EasierDailyCommute',
+    'LSI-LifestyleNoneOfAbove',
+    'LSI-NewWayToExplore',
+    'LifestyleInfluence-Other - Boolean'
+]
+
+plot_true_frequencies(df, reason_columns, as_percentage=True, title="Riding Life Style Influences")
+
+## Comfort Frequencies
+reason_columns = [
+    'Comfort-CityStreets',
+    'Comfort-CyclePaths',
+    'Comfort-CycleTracks',
+    'Comfort-Highways',
+    'Comfort-NeighborhoodRoads',
+    'Comfort-Parks',
+    'Comfort-Sidewalks'
+]
+
+plot_true_frequencies(df, reason_columns, as_percentage=True, title="Comfortable Riding Locations")
+
+
+## Challenges Frequencies
+reason_columns = [
+    'Chal-ChargingAccess',
+    'Chal-CulturalNorms',
+    'Chal-ExtremeWeather',
+    'Chal-EquipmentCost',
+    'Chal-Judgement',
+    'Chal-NoCycleLanes',
+    'Chal-NoCycleParking',
+    'Chal-PersonalSafetyConcerns',
+    'Chal-PetrolPrices',
+    'Chal-RoadSafetyConcerns',
+    'Challenges-Other'
+]
+
+plot_true_frequencies(df, reason_columns, as_percentage=True, title="Riding Challenges")
+
+## Experience Improvement Frequencies
+reason_columns = [
+    'ExpImp-IndoorCyclingAccess',
+    'ExpImp-Awareness',
+    'ExpImp-BetterRoads',
+    'ExpImp-BetterSignage',
+    'ExpImp-MoreBikeRentals',
+    'ExpImp-MoreCyclingLanes',
+    'ExpImp-MoreDedicatedTracks',
+    'ExpImp-MoreShadedAreas',
+    'ExperienceImprovement-Other'
+]
+
+plot_true_frequencies(df, reason_columns, as_percentage=True, title="Experience Improvements")
+
+
+
+## Cycle Shop Influence Frequencies
+reason_columns = [
+    'CSI-SpendTimeWithFamily',
+    'CSI-ConnectedGrowingCulture',
+    'CSI-CharityCyclingEvents',
+    'CSI-CyclingGroupsAndFriends',
+    'CSI-WorkshopEventAccess',
+    'CycleShopsInfluence-Other'
+]
+
+plot_true_frequencies(df, reason_columns, as_percentage=True, title="Cycle Shop Influence")
+
+## Cycle Shop Benefit Frequencies
+reason_columns = [
+    'CSB-ReliableMaintenance',
+    'CSB-WelcomingCommunity',
+    'CSB-PremiumGearAccess',
+    'CSB-HighQualityExpertService',
+    'CSB-HealthyMotivation',
+    'CycleShopsBenefit-Other'
+]
+
+plot_true_frequencies(df, reason_columns, as_percentage=True, title="Cycle Shop Benefits")
+
+
+
+### Location Frequencies ###
+
+## Abu Dhabi Frequencies
+reason_columns = [
+    'AD-AlBateen',
+    'AD-AlHudayriyatIsland',
+    'AD-AlMaryahIsland',
+    'AD-AlRaha',
+    'AD-AlReemIsland',
+    'AD-AlSaadiyatIsland',
+    'AD-AlShahama',
+    'AD-AlWathbaCycleTrack',
+    'AD-TouristClub',
+    'AD-Corniche',
+    'AD-KhalifaCity',
+    'AD-Musaffah',
+    'AD-YasIsland'
+]
+
+plot_true_frequencies(df, reason_columns, as_percentage=True, title="Abu Dhabi Riding Locations")
+
+## Al Ain Frequencies
+reason_columns = [
+    'AA-AlAinCycleTrack',
+    'AA-AlJimi',
+    'Al Mutarid',
+    'AA-AlMutawah',
+    'AA-CentralDistrict',
+    'AA-Hili - Boolean',
+    'AA-JebelHafeet'
+]
+
+plot_true_frequencies(df, reason_columns, as_percentage=True, title="Al Ain Riding Locations")
+
+## Dubai Frequencies
+reason_columns = [
+    'D-AlQudraCycleTrack',
+    'D-BurDubai',
+    'D-BusinessBay',
+    'D-Deira',
+    'D-DowntownDubai',
+    'D-DubaiMarina',
+    'D-JLT',
+    'D-JumeirahBeach',
+    'D-MeydanDXBike',
+    'D-MushrifPark'
+]
+
+plot_true_frequencies(df, reason_columns, as_percentage=True, title="Dubai Riding Locations")
+
+## Sharjah Frequencies
+reason_columns = [
+    'S-AlBatayehBicycleTrack',
+    'S-AlQasimia',
+    'S-AlRiqa',
+    'S-IndustrialArea',
+    'S-KhorFakkan',
+    'S-MasaarCyclingTrack',
+    'S-SharjahCorniche',
+    'S-UniversityCity'
+]
+
+plot_true_frequencies(df, reason_columns, as_percentage=True, title="Sharjah Riding Locations")
+
+## Ras al Khaimah Frequencies
+reason_columns = [
+    'RAK-AlJazeeraAlHamra',
+    'RAK-AlMarjanIsland',
+    'RAK-DowntownRasAlKhaimah',
+    'RAK-JebelJais',
+    'RAK-MinaAlArab'
+]
+
+plot_true_frequencies(df, reason_columns, as_percentage=True, title="Ras al Khaimah Riding Locations")
+
+## Country Frequencies
+country_counts = df['Country'].dropna().value_counts()
+
+plt.figure(figsize=(12, 6))
+country_counts.plot(kind='bar', color='mediumseagreen')
+plt.title('Frequency of Respondents by Country')
+plt.xlabel('Country')
+plt.ylabel('Number of Respondents')
+plt.xticks(rotation=45, ha='right')
+plt.grid(axis='y', linestyle='--', alpha=0.5)
+plt.tight_layout()
+plt.show()
+
+## Emirate Frequencies
+emirate_counts = df['Emirate'].dropna().value_counts()
+
+plt.figure(figsize=(12, 6))
+emirate_counts.plot(kind='bar', color='mediumseagreen')
+plt.title('Frequency of Respondents by Emirate')
+plt.xlabel('Emirate')
+plt.ylabel('Number of Respondents')
+plt.xticks(rotation=45, ha='right')
+plt.grid(axis='y', linestyle='--', alpha=0.5)
+plt.tight_layout()
+plt.show()
+
+############################################################################################
+#                                       ANALYSIS
+############################################################################################
 
 ### Emirate vs Safety ###
 
@@ -520,4 +872,3 @@ anova_result = anova_lm(model, typ=2)
 
 print("Challenging Norms Anova:")
 print(anova_result)
-
