@@ -217,7 +217,7 @@ plt.show()
 print()
 
 ####################################################################
-
+'''
 ### Wordcloud ###
 
 from wordcloud import WordCloud, STOPWORDS
@@ -268,6 +268,8 @@ columns_to_plot = ['Emirate-WhyLikeRiding', 'Emirate-Initiatives','BikeType-Othe
                    'CycleShopsBenefit-Other-Text', 'AlDhafra-Location', 'UmmAlQuwain-Location', 'Emirate-Location-Other-Text']
 plot_wordclouds(df, columns_to_plot)
 
+'''
+
 ######################################################################
 
 ### Frequency Plots ###
@@ -304,6 +306,7 @@ def plot_true_frequencies(df, columns, as_percentage=True, title="Frequency of R
     plt.grid(axis='y', linestyle='--', alpha=0.5)
     plt.tight_layout()
     plt.show()
+
 
 
 ## Why Ride Frequencies
@@ -346,8 +349,6 @@ reason_columns = [
 
 plot_true_frequencies(df, reason_columns, as_percentage=True, title="Reasons not to Ride")
 
-
-
 ## AltMicro Frequencies
 reason_columns = [
     'AltMicro-Bike',
@@ -359,24 +360,6 @@ reason_columns = [
 ]
 
 plot_true_frequencies(df, reason_columns, as_percentage=True, title="Alternate Mirco-mobility")
-
-## Month Frequencies
-reason_columns = [
-    'January',
-    'February',
-    'March',
-    'April',
-    'May',
-    'June',
-    'July',
-    'August',
-    'September',
-    'October',
-    'November',
-    'December'
-]
-
-plot_true_frequencies(df, reason_columns, as_percentage=True, title="Riding Months")
 
 ## Life Style Influence Frequencies
 reason_columns = [
@@ -403,7 +386,6 @@ reason_columns = [
 ]
 
 plot_true_frequencies(df, reason_columns, as_percentage=True, title="Comfortable Riding Locations")
-
 
 ## Challenges Frequencies
 reason_columns = [
@@ -436,8 +418,6 @@ reason_columns = [
 ]
 
 plot_true_frequencies(df, reason_columns, as_percentage=True, title="Experience Improvements")
-
-
 
 ## Cycle Shop Influence Frequencies
 reason_columns = [
