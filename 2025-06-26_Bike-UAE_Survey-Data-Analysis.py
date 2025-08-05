@@ -17,6 +17,10 @@ import statsmodels.api as sm
 from statsmodels.formula.api import ols
 from statsmodels.stats.anova import anova_lm
 
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import r2_score
+from sklearn.ensemble import RandomForestRegressor
+
 import re
 
 # Set Working Directory to folder with data
@@ -86,7 +90,7 @@ plt.show()
 
 
 
-'''
+
 ### Duration Distribution ###
 # Examine initial boxplot
 sns.boxplot(x=df['Duration'])
@@ -118,7 +122,7 @@ plt.xlabel('Duration (minutes)')
 plt.ylabel('Number of Respondents')
 plt.title('Survey Completion Time Distribution')
 plt.show()
-'''
+
 
 
 
@@ -160,6 +164,18 @@ safety_mapping = {
     '5 - not safe at all, many concerns': 5
 }
 df['SafetyScore'] = df['Emirate-Safety'].map(safety_mapping)
+
+# Map TranspoType-HowOften to numeric scale
+howOften_mapping = {
+    'Daily': 365,
+    '4-6 times a week': 260,
+    '2-3 times a week': 130,
+    'Once a week': 52,
+    'A few times a month': 24,
+    'Once a month': 12,
+    'A few times a year': 4
+}
+df['HowOftenScore'] = df['TranspoType-HowOften'].map(howOften_mapping)
 
 
 # Count 'Prefer not to say' and NaN values in the Gender column
@@ -217,7 +233,7 @@ plt.show()
 print()
 
 ####################################################################
-'''
+
 ### Wordcloud ###
 
 from wordcloud import WordCloud, STOPWORDS
@@ -261,18 +277,21 @@ def plot_wordclouds(df, columns, extra_stopwords=None, colormap='viridis'):
         plt.tight_layout()
         plt.show()
 
-columns_to_plot = ['Emirate-WhyLikeRiding', 'Emirate-Initiatives','BikeType-Other-Text',
-                   'RiderType-Other-Text', 'TranspoType-Why-Other-Text', 'Education-Other-Text',
+columns_to_plot = ['TranspoType-Why-Other-Text', 'Education-Other-Text',
                    'KidsCycle-No-Text', 'NoRideCommute-Other-Text', 'LifestyleInfluence-Other-Text',
                    'Challenges-Other-Text', 'ExperienceImprovement-Other-Text', 'CycleShopsInfluence-Other-Text',
                    'CycleShopsBenefit-Other-Text', 'AlDhafra-Location', 'UmmAlQuwain-Location', 'Emirate-Location-Other-Text']
 plot_wordclouds(df, columns_to_plot)
 
-'''
+
+
+
 
 ######################################################################
 
 ### Frequency Plots ###
+
+
 
 def plot_true_frequencies(df, columns, as_percentage=True, title="Frequency of Reasons for Riding", color='steelblue'):
     """
@@ -546,6 +565,8 @@ plt.grid(axis='y', linestyle='--', alpha=0.5)
 plt.tight_layout()
 plt.show()
 
+
+
 ############################################################################################
 #                                       ANALYSIS
 ############################################################################################
@@ -605,33 +626,79 @@ emirate_groups = [group for group in emirate_groups if len(group) > 1]
 
 ### ANOVA TESTS ###
 from patsy import dmatrix
-print("\n--- ANOVA Tests ---\n")
 
+### ANOVA TEST Frequency ###
+print("\n--- ANOVA AGAIN Tests ---\n")
+
+# Copy the original dataframe
 df_anova = df.copy()
-df_anova['SafetyScore'] = df_anova['Emirate-Safety'].map(safety_mapping)
 
+# Define features to test
+features = [
+    'DurationInUAE','Country','Age','Salary','YearsRiding',
+    'TrackRides','Emirate','OwnBike','EmploymentStatus','Gender'
+]
 
-# Define the features to test (now includes TranspoType-HowOften)
-features = ['Gender', 'Age', 'Salary', 'Emirate', 'TranspoType-HowOften', 'YearsRiding']
-anova_results = {}
+# Dictionary to store p-values
+pval_dict = {}
 
-# Loop through features and run one-way ANOVA for each
+# Loop and calculate ANOVA
 for feature in features:
     df_test = df_anova[df_anova['SafetyScore'].notna() & df_anova[feature].notna()].copy()
     df_test[feature] = df_test[feature].astype('category')
-
-    # Use Q() for safe column referencing
-    formula = f'SafetyScore ~ C(Q("{feature}"))'
     
+    formula = f'SafetyScore ~ C(Q("{feature}"))'
     model = ols(formula, data=df_test).fit()
     anova_table = anova_lm(model, typ=2)
 
-    anova_results[feature] = anova_table
+    # Store p-value from the feature's row (not the residual)
+    pval_dict[feature] = anova_table["PR(>F)"].iloc[0]
 
-# Display results
-for feature, table in anova_results.items():
-    print(f"\n### One-Way ANOVA: {feature} ###")
-    print(table)
+# Create and display DataFrame of p-values
+pval_df = pd.DataFrame.from_dict(pval_dict, orient='index', columns=['p-value'])
+pval_df = pval_df.sort_values(by='p-value')
+
+print("\n### SafetyScore ANOVA P-Values for Each Feature ###")
+print(pval_df)
+
+
+
+
+
+
+### ANOVA TEST Frequency ###
+print("\n--- ANOVA AGAIN Tests ---\n")
+
+# Copy the original dataframe
+df_anova = df.copy()
+
+# Define features to test
+features = [
+    'DurationInUAE','Country','Age','Salary','YearsRiding',
+    'TrackRides','Emirate','OwnBike','EmploymentStatus','Gender'
+]
+
+# Dictionary to store p-values
+pval_dict = {}
+
+# Loop and calculate ANOVA
+for feature in features:
+    df_test = df_anova[df_anova['HowOftenScore'].notna() & df_anova[feature].notna()].copy()
+    df_test[feature] = df_test[feature].astype('category')
+    
+    formula = f'HowOftenScore ~ C(Q("{feature}"))'
+    model = ols(formula, data=df_test).fit()
+    anova_table = anova_lm(model, typ=2)
+
+    # Store p-value from the feature's row (not the residual)
+    pval_dict[feature] = anova_table["PR(>F)"].iloc[0]
+
+# Create and display DataFrame of p-values
+pval_df = pd.DataFrame.from_dict(pval_dict, orient='index', columns=['p-value'])
+pval_df = pval_df.sort_values(by='p-value')
+
+print("\n### HowOftenScore ANOVA P-Values for Each Feature ###")
+print(pval_df)
 
 ################################################################
 
@@ -852,3 +919,160 @@ anova_result = anova_lm(model, typ=2)
 
 print("Challenging Norms Anova:")
 print(anova_result)
+
+# Run ANOVA
+df_anova_howoften = df[['SafetyScore', 'HowOftenScore']].dropna()
+df_anova_howoften['HowOftenScore'] = df_anova_howoften['HowOftenScore'].astype('category')
+
+model = ols('SafetyScore ~ C(HowOftenScore)', data=df_anova_howoften).fit()
+anova_result = anova_lm(model, typ=2)
+
+print("Safety vs How Often Anova:")
+print(anova_result)
+
+
+
+# Drop NA values
+df_model = df[['SafetyScore', 'HowOftenScore']].dropna()
+
+# Prepare X and y
+X = df_model[['HowOftenScore']].values
+y = df_model['SafetyScore'].values
+
+# Fit linear regression model
+model = LinearRegression()
+model.fit(X, y)
+y_pred = model.predict(X)
+r2 = r2_score(y, y_pred)
+
+# Plot
+plt.figure(figsize=(8, 6))
+sns.regplot(x='HowOftenScore', y='SafetyScore', data=df_model, scatter_kws={'alpha':0.6}, line_kws={'color':'red'})
+plt.title(f'Safety Score vs How Often They Ride\n$R^2$ = {r2:.3f}')
+plt.xlabel('Riding Frequency (days/yr)')
+plt.ylabel('Safety Score (1 = Safe, 5 = Not Safe)')
+plt.grid(True, linestyle='--', alpha=0.5)
+plt.tight_layout()
+plt.show()
+
+
+
+# Ensure required columns are present and drop NA
+df_anova_own = df[['OwnBike', 'HowOftenScore']].dropna()
+
+# Convert OwnBike to categorical
+df_anova_own['OwnBike'] = df_anova_own['OwnBike'].astype('category')
+df_anova_own['HowOftenScore'] = df_anova_own['HowOftenScore'].astype('float')
+
+# Fit ANOVA model
+model = ols('HowOftenScore ~ C(OwnBike)', data=df_anova_own).fit()
+anova_result = anova_lm(model, typ=2)
+
+print("Own Bike vs How Often Anova:")
+print(anova_result)
+
+
+
+#########
+
+# Filter rows with valid HowOftenScore
+df_rf = df[df['HowOftenScore'].notna()].copy()
+
+# Expanded list of features
+predictor_columns = [
+    'OwnBike', 'Gender', 'Age', 'Salary', 'Emirate', 'Country', 'Nationality',
+    'Why-Commuting', 'Why-Racing', 'Why-Fitness', 'Why-Leisure',
+    'TrackRides', 'EmploymentStatus', 'DurationInUAE', 'YearsRiding',
+    'RideWith-Myself', 'RideWith-CyclingClub', 'RideWith-Family', 'RideWith-Friends'
+]
+
+# Filter only existing columns
+predictor_columns = [col for col in predictor_columns if col in df_rf.columns]
+
+# Encode categorical and boolean columns
+for col in predictor_columns:
+    df_rf[col] = df_rf[col].astype(str)
+    le = LabelEncoder()
+    df_rf[col] = le.fit_transform(df_rf[col])
+
+# Prepare X and y
+X = df_rf[predictor_columns]
+y = df_rf['HowOftenScore']
+
+# Fit Random Forest
+rf_model = RandomForestRegressor(n_estimators=100, random_state=42)
+rf_model.fit(X, y)
+
+# Feature importances
+importances = pd.Series(rf_model.feature_importances_, index=predictor_columns).sort_values(ascending=False)
+
+#########
+
+# Updated: Remove group-based or motivational variables from main model
+reduced_predictors = [
+    'OwnBike', 'Gender', 'Age', 'Salary', 'Emirate', 'Country', 'Nationality',
+    'TrackRides', 'EmploymentStatus', 'DurationInUAE', 'YearsRiding'
+]
+
+# Filter only existing columns
+reduced_predictors = [col for col in reduced_predictors if col in df_rf.columns]
+
+# Encode categorical
+df_main = df_rf[reduced_predictors + ['HowOftenScore']].copy()
+for col in reduced_predictors:
+    df_main[col] = df_main[col].astype(str)
+    le = LabelEncoder()
+    df_main[col] = le.fit_transform(df_main[col])
+
+# Fit random forest on reduced features
+X_main = df_main[reduced_predictors]
+y_main = df_main['HowOftenScore']
+
+rf_main = RandomForestRegressor(n_estimators=100, random_state=42)
+rf_main.fit(X_main, y_main)
+
+importances_main = pd.Series(rf_main.feature_importances_, index=reduced_predictors).sort_values(ascending=False)
+
+# Plot main feature importance
+plt.figure(figsize=(8, 6))
+importances_main.plot(kind='barh', color='mediumorchid')
+plt.title('Feature Importance for Riding Frequency')
+plt.xlabel('Importance Score')
+plt.gca().invert_yaxis()
+plt.grid(True, linestyle='--', alpha=0.5)
+plt.tight_layout()
+plt.show()
+
+# ===============================
+# Separate model: Motivation-based features only
+motivation_vars = [
+    'Why-Racing', 'Why-Leisure', 'Why-Commuting', 'Why-TourdeFrance', 'Why-Fitness'
+]
+motivation_vars = [col for col in motivation_vars if col in df_rf.columns]
+
+# Encode categorical
+df_motive = df_rf[motivation_vars + ['HowOftenScore']].copy()
+for col in motivation_vars:
+    df_motive[col] = df_motive[col].astype(str)
+    le = LabelEncoder()
+    df_motive[col] = le.fit_transform(df_motive[col])
+
+# Fit model on motivation vars
+X_motive = df_motive[motivation_vars]
+y_motive = df_motive['HowOftenScore']
+
+rf_motive = RandomForestRegressor(n_estimators=100, random_state=42)
+rf_motive.fit(X_motive, y_motive)
+
+importances_motive = pd.Series(rf_motive.feature_importances_, index=motivation_vars).sort_values(ascending=False)
+
+# Plot motivation-only feature importances
+plt.figure(figsize=(6, 4))
+importances_motive.plot(kind='barh', color='salmon')
+plt.title('Motivations Feature Importance for Riding Frequency')
+plt.xlabel('Importance Score')
+plt.gca().invert_yaxis()
+plt.grid(True, linestyle='--', alpha=0.5)
+plt.tight_layout()
+plt.show()
+
